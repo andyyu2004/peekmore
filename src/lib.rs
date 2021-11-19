@@ -380,6 +380,13 @@ impl<I: Iterator> PeekMoreIterator<I> {
         self.queue.get(self.cursor).and_then(|v| v.as_ref())
     }
 
+    /// Mutable version of `peek`
+    #[inline]
+    pub fn peek_mut(&mut self) -> Option<&mut I::Item> {
+        self.fill_queue(self.cursor);
+        self.queue.get_mut(self.cursor).and_then(|v| v.as_mut())
+    }
+
     // Convenient as we don't have to re-assign our mutable borrow on the 'user' side.
     /// Advance the cursor to the next element and return a reference to that value.
     #[inline]
@@ -750,11 +757,7 @@ impl<'a, I: Iterator> Iterator for PeekMoreIterator<I> {
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let res = if self.queue.is_empty() {
-            self.iterator.next()
-        } else {
-            self.queue.remove(0)
-        };
+        let res = if self.queue.is_empty() { self.iterator.next() } else { self.queue.remove(0) };
 
         self.decrement_cursor();
 
@@ -765,12 +768,14 @@ impl<'a, I: Iterator> Iterator for PeekMoreIterator<I> {
 /// Uses [`ExactSizeIterator`] default implementation.
 ///
 /// [`ExactSizeIterator`]: https://doc.rust-lang.org/core/iter/trait.ExactSizeIterator.html
-impl<I: ExactSizeIterator> ExactSizeIterator for PeekMoreIterator<I> {}
+impl<I: ExactSizeIterator> ExactSizeIterator for PeekMoreIterator<I> {
+}
 
 /// Uses [`FusedIterator`] default implementation.
 ///
 /// [`FusedIterator`]: https://doc.rust-lang.org/core/iter/trait.FusedIterator.html
-impl<I: FusedIterator> FusedIterator for PeekMoreIterator<I> {}
+impl<I: FusedIterator> FusedIterator for PeekMoreIterator<I> {
+}
 
 /// This enumeration provides errors which represent lack of success of the [`PeekMoreIterator`].
 ///
@@ -927,14 +932,8 @@ mod tests {
 
         let mut iter = iterable.peekmore();
         assert_eq!(iter.peek(), Some(&core::char::from_digit(1, 10).unwrap()));
-        assert_eq!(
-            iter.peek_next(),
-            Some(&core::char::from_digit(2, 10).unwrap())
-        );
-        assert_eq!(
-            iter.peek_next(),
-            Some(&core::char::from_digit(3, 10).unwrap())
-        );
+        assert_eq!(iter.peek_next(), Some(&core::char::from_digit(2, 10).unwrap()));
+        assert_eq!(iter.peek_next(), Some(&core::char::from_digit(3, 10).unwrap()));
         assert_eq!(iter.peek_next(), None);
         assert_eq!(iter.next(), Some(core::char::from_digit(1, 10).unwrap()));
         assert_eq!(iter.peek(), None);
@@ -953,23 +952,14 @@ mod tests {
 
         let mut iter = iterable.peekmore();
         assert_eq!(iter.peek(), Some(&core::char::from_digit(4, 10).unwrap()));
-        assert_eq!(
-            iter.peek_next(),
-            Some(&core::char::from_digit(5, 10).unwrap())
-        );
-        assert_eq!(
-            iter.peek_next(),
-            Some(&core::char::from_digit(6, 10).unwrap())
-        );
+        assert_eq!(iter.peek_next(), Some(&core::char::from_digit(5, 10).unwrap()));
+        assert_eq!(iter.peek_next(), Some(&core::char::from_digit(6, 10).unwrap()));
         assert_eq!(iter.peek_next(), None);
         assert_eq!(iter.next(), Some(core::char::from_digit(4, 10).unwrap()));
         iter.reset_cursor();
 
         assert_eq!(iter.peek(), Some(&core::char::from_digit(5, 10).unwrap()));
-        assert_eq!(
-            iter.peek_next(),
-            Some(&core::char::from_digit(6, 10).unwrap())
-        );
+        assert_eq!(iter.peek_next(), Some(&core::char::from_digit(6, 10).unwrap()));
 
         assert_eq!(iter.next(), Some(core::char::from_digit(5, 10).unwrap()));
         assert_eq!(iter.next(), Some(core::char::from_digit(6, 10).unwrap()));
